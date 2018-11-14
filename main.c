@@ -4,6 +4,10 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
+#define FOSC F_CPU// Clock Speed
+#define BAUD 115200
+#define MYUBRR FOSC/16/BAUD-1
+
 void write_char(unsigned char c)
 {
     while (!(UCSR0A & (1 << UDRE0)))
@@ -23,13 +27,10 @@ ISR(USART_RX_vect)
 
 void init_interrupt()
 {
-    //__enable_interrupt();
     sei();
-    //SREG |= (1<<_BV(SREG_I)); // Global interrupt enable
-    //MCUCR = (1<<_BV(IVCE));
 }
 
-void SPI_MasterInit(void)
+void SPI_MasterInit()
 {
     /* Set MOSI and SCK output, all others input */
     DDRB = (1 << DDB3) | (1 << DDB5);
@@ -44,20 +45,20 @@ void SPI_MasterTransmit(char cData)
     while (!(SPSR & (1 << SPIF)));
 }
 
-void UART_init()
+void UART_init(unsigned int ubbr)
 {
-    UBRR0H = (unsigned char)0x00;
-    UBRR0L = (unsigned char)0x10; //baudrate at 115200
+    UBRR0H = (unsigned char)(ubbr>>8);
+    UBRR0L = (unsigned char)(ubbr);
 
     UCSR0A = (_BV(U2X0));
-    UCSR0B = (_BV(RXEN0)) | (_BV(TXEN0)) | (_BV(RXCIE0)); //enable RX and Tx
-    UCSR0C = (3 << (UCSZ00));                             //8bit char
+    UCSR0B = (_BV(RXEN0)) | (_BV(TXEN0)) | (_BV(RXCIE0)); //enable RX and Tx and interrupt on reception
+    UCSR0C = (3 << (UCSZ00));                           , //8bit char
 }
 
 void main()
 {
     // Active et allume la broche PB5 (led)
-    UART_init();
+    USART_Init (MYUBRR);
     SPI_MasterInit();
     init_interrupt();
     int led = 0;

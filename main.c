@@ -18,6 +18,16 @@ void USART_Transmit(unsigned char data)
     while ((UCSR0A & (1 << TXC0)) == 0x00);
 }
 
+void USART_puts(unsigned char *mot){
+
+    //sprintf(buffer, "x=%u\r\n", TCNT1);
+    int k = 0;
+    while(mot[k] != '\0'){
+        USART_Transmit(mot[k]);
+        k++;
+    } 
+}
+
 void USART_Init(unsigned int ubbr)
 {
     UBRR0H = (unsigned char)(ubbr>>8); //Baudrate at 38400
@@ -35,7 +45,7 @@ void Init_Interrupt()
 }
 
 
-ISR(USART_RX_vect)
+ISR(USART0_RX_vect)
 {
     unsigned char carac = UDR0;
     USART_Transmit(carac);
@@ -104,12 +114,7 @@ void main()
     char buffer[64];
     while (1)
     {
-        // sprintf(buffer, "x=%u\r\n", TCNT1);
-        // int k = 0;
-        // while(buffer[k] != '\0'){
-        //     USART_Transmit(buffer[k]);
-        //     k++;
-        // } 
+        
         //USART_Transmit('a');
         //SPI_MasterTransmit(cData, cData2);
         //_delay_ms(1000);

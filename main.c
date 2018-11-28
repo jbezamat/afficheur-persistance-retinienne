@@ -14,11 +14,23 @@
 int hour = 0;
 int minute = 0;
 
-void USART_Transmit(unsigned char data)
+void Init_Interrupt()
 {
-    while (!(UCSR0A & (1 << UDRE0)));
-    UDR0 = data;
-    while ((UCSR0A & (1 << TXC0)) == 0x00);
+    sei();
+}
+
+ISR(TIMER1_COMPA_vect) 
+{
+    minute++;
+
+    if(minute >= 60) {
+        minute = 0;
+        hour++;
+    }
+
+    if(hour >= 24) {
+        hour = 0;
+    }
 }
 
 void USART_Init(unsigned int ubbr)
@@ -39,7 +51,7 @@ void Init_Interrupt()
 
 
 unsigned char[5] usart_buffer;
-ISR(USART_RX_vect)
+ISR(USART0_RX_vect)
 {
     unsigned char carac = UDR0;
 
@@ -76,6 +88,40 @@ void SPI_MasterInit()
 
     PORTD = PORTD | _BV(PD3) | _BV(PD4);
 }
+
+void Init_Seconds() 
+{
+    //Set prescaler to 1024
+    TCCR1B |= _BV(CS12) | _BV(CS10);
+
+    //Set CTC mode
+    TCCR1B |= _BV(WGM12);
+
+    //Set overflow to 12695
+    OCR1AH = 0x31;
+    OCR1AL = 0x97;
+
+    //Set interrupt on compare match
+    TIMSK |= _BV(OCIE1A);
+}
+
+void USART_Transmit(unsigned char data)
+{
+    while (!(UCSR0A & (1 << UDRE0)));
+    UDR0 = data;
+    while ((UCSR0A & (1 << TXC0)) == 0x00);
+}
+
+void USART_puts(unsigned char *mot){
+
+    //sprintf(buffer, "x=%u\r\n", TCNT1);
+    int k = 0;
+    while(mot[k] != '\0'){
+        USART_Transmit(mot[k]);
+        k++;
+    } 
+}
+
 void SPI_MasterTransmit(char cData, char cData2)
 {
     /* Start transmission */
@@ -95,36 +141,6 @@ void SPI_MasterTransmit(char cData, char cData2)
     PORTD |= (1 << PORTD3);
 }
 
-void Init_Seconds() 
-{
-    //Set prescaler to 1024
-    TCCR1B |= _BV(CS12) | _BV(CS10);
-
-    //Set CTC mode
-    TCCR1B |= _BV(WGM12);
-
-    //Set overflow to 12695
-    OCR1AH = 0x31;
-    OCR1AL = 0x97;
-
-    //Set interrupt on compare match
-    TIMSK |= _BV(OCIE1A);
-}
-
-ISR(TIMER1_COMPA_vect) 
-{
-    minute++;
-
-    if(minute >= 60) {
-        minute = 0;
-        hour++;
-    }
-
-    if(hour >= 24) {
-        hour = 0;
-    }
-}
-
 void main()
 {
     // Active et allume la broche PB5 (led)
@@ -132,21 +148,11 @@ void main()
     USART_Init (MYUBRR);
     SPI_MasterInit();
     Init_Seconds();
-    char cData = 0x01;
-    char cData2 = 0x01;
+    char cData = 0xFF;
+    char cData2 = 0xFF;
     char buffer[64];
     while (1)
     {
-        // sprintf(buffer, "x=%u\r\n", TCNT1);
-        // int k = 0;
-        // while(buffer[k] != '\0'){
-        //     USART_Transmit(buffer[k]);
-        //     k++;
-        // } 
-        //USART_Transmit('a');
-        //SPI_MasterTransmit(cData, cData2);
-        //_delay_ms(1000);
-        //USART_Transmit('b');
-        //_delay_ms(1000);
+        
     }
 }

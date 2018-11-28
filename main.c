@@ -59,18 +59,16 @@ void SPI_MasterTransmit(char cData, char cData2)
     /* Wait for transmission complete */
     while (!(SPSR & (1 << SPIF)));
     /* Start transmission */
-    _delay_ms(10);
+
     SPDR = cData2;
     /* Wait for transmission complete */
     while (!(SPSR & (1 << SPIF)));
-    USART_Transmit('b');
 
     /* Latch and Output enable terminal*/
     PORTD |= (1 << PORTD4); // latch
     PORTD &= ~(1 << PORTD4);
-    PORTD |= (1 << PORTD3); // OE
-    _delay_us(10);
-    PORTD &= ~(1 << PORTD3);
+    PORTD &= ~(1 << PORTD3); // OE
+    PORTD |= (1 << PORTD3);
 }
 
 void Init_Seconds() 
@@ -82,13 +80,14 @@ void Init_Seconds()
     TCCR1B |= _BV(WGM12);
 
     //Set overflow to 12695
-    OCR1A = 0x3197;
+    OCR1AH = 0x31;
+    OCR1AL = 0x97;
 
     //Set interrupt on compare match
-    TIMSK |= _BV(TOIE1);
+    TIMSK |= _BV(OCIE1A);
 }
 
-ISR(TIM1_OVF) 
+ISR(TIMER1_COMPA_vect) 
 {
     USART_Transmit('s');
 }
@@ -96,16 +95,24 @@ ISR(TIM1_OVF)
 void main()
 {
     // Active et allume la broche PB5 (led)
-    USART_Init (MYUBRR);
     Init_Interrupt();
+    USART_Init (MYUBRR);
     SPI_MasterInit();
+    Init_Seconds();
     char cData = 0x01;
     char cData2 = 0x01;
+    char buffer[64];
     while (1)
     {
+        // sprintf(buffer, "x=%u\r\n", TCNT1);
+        // int k = 0;
+        // while(buffer[k] != '\0'){
+        //     USART_Transmit(buffer[k]);
+        //     k++;
+        // } 
         //USART_Transmit('a');
-        SPI_MasterTransmit(cData, cData2);
-        _delay_ms(1000);
+        //SPI_MasterTransmit(cData, cData2);
+        //_delay_ms(1000);
         //USART_Transmit('b');
         //_delay_ms(1000);
     }

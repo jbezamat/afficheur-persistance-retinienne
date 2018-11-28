@@ -5,6 +5,7 @@
         "iom328p.h": "c",
         "delay.h": "c",
         "usart.h": "c",
-        "interrupt.h": "c"
+        "interrupt.h": "c",
+        "iom128.h": "c"
     }
 }

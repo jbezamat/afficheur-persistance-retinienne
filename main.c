@@ -88,7 +88,7 @@ void Init_Seconds()
     TIMSK |= _BV(TOIE1);
 }
 
-ISR(TIM1_OVF) 
+ISR(TIM1_OVF)
 {
     USART_Transmit('s');
 }

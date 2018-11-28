@@ -70,11 +70,18 @@ ISR(USART0_RX_vect)
 
     //If it a time, save it
     if(usart_buffer[2] == ':') {
-        hour = usart_buffer[0] << 8 | usart_buffer[1];
-        minute = usart_buffer[3] << 8 | usart_buffer[4];
+        hour = ctoi(usart_buffer[0], usart_buffer[1]);
+        minute = ctoi(usart_buffer[3], usart_buffer[4]);
     }
 
-    USART_Transmit(carac);
+    // USART_Transmit(carac);
+}
+
+int ctoi(char a, char b)
+{
+    int d = a - '0';
+    int u = j - '0';
+    return d*10 + u;
 }
 
 void SPI_MasterInit()

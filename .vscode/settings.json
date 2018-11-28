@@ -3,6 +3,8 @@
         "io.h": "c",
         "iox256a3.h": "c",
         "iom328p.h": "c",
-        "delay.h": "c"
+        "delay.h": "c",
+        "usart.h": "c",
+        "interrupt.h": "c"
     }
 }

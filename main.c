@@ -73,6 +73,26 @@ void SPI_MasterTransmit(char cData, char cData2)
     PORTD &= ~(1 << PORTD3);
 }
 
+void Init_Seconds() 
+{
+    //Set prescaler to 1024
+    TCCR1B |= _BV(CS12) | _BV(CS10);
+
+    //Set CTC mode
+    TCCR1B |= _BV(WGM12);
+
+    //Set overflow to 12695
+    OCR1A = 0x3197;
+
+    //Set interrupt on compare match
+    TIMSK |= _BV(TOIE1);
+}
+
+ISR(TIM1_OVF) 
+{
+    USART_Transmit('s');
+}
+
 void main()
 {
     // Active et allume la broche PB5 (led)

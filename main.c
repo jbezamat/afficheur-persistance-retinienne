@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 //#include "USART.h"
 
 #define FOSC F_CPU// Clock Speed

@@ -59,7 +59,7 @@ void SPI_MasterInit()
 void Init_Watch() 
 {
     //Set prescaler to 1024
-    TCCR1B |= _BV(CS10);
+    TCCR1B |= _BV(CS12) |_BV(CS10);
 
     //Set CTC mode
     TCCR1B |= _BV(WGM12);

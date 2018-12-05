@@ -14,11 +14,6 @@
 int hour = 0;
 int minute = 0;
 
-void Init_Interrupt()
-{
-    sei();
-}
-
 ISR(TIMER1_COMPA_vect) 
 {
     minute++;
@@ -47,41 +42,6 @@ void USART_Init(unsigned int ubbr)
 void Init_Interrupt()
 {
     sei();
-}
-
-
-unsigned char[5] usart_buffer;
-ISR(USART0_RX_vect)
-{
-    unsigned char carac = UDR0;
-
-    if(carac == 'h') {
-        char buffer[64];
-        sprintf(buffer, "%u:%u", hour, minute);
-        USART_puts(buffer);
-    }
-
-    //Fill USART buffer 
-    for(int i = sizeof(usart_buffer)/sizeof(usart_buffer[0]) - 1; i >= 0; i--) {
-        usart_buffer[i+1] = usart_buffer[i];
-    }
-
-    usart_buffer[0] = carac;
-
-    //If it a time, save it
-    if(usart_buffer[2] == ':') {
-        hour = ctoi(usart_buffer[0], usart_buffer[1]);
-        minute = ctoi(usart_buffer[3], usart_buffer[4]);
-    }
-
-    // USART_Transmit(carac);
-}
-
-int ctoi(char a, char b)
-{
-    int d = a - '0';
-    int u = j - '0';
-    return d*10 + u;
 }
 
 void SPI_MasterInit()
@@ -146,6 +106,46 @@ void SPI_MasterTransmit(char cData, char cData2)
     PORTD &= ~(1 << PORTD4);
     PORTD &= ~(1 << PORTD3); // OE
     PORTD |= (1 << PORTD3);
+}
+
+
+char ctoi(char a, char b)
+{
+    char d = a - '0';
+    char u = b - '0';
+    return d*10 + u;
+}
+
+unsigned char usart_buffer[5];
+ISR(USART0_RX_vect)
+{
+    unsigned char carac = UDR0;
+
+    if(carac == 'h') {
+        char buffer[64];
+        sprintf(buffer, "%u:%u", hour, minute);
+        USART_puts(buffer);
+    }
+
+    //Fill USART buffer 
+
+    int i = sizeof(usart_buffer)/sizeof(usart_buffer[0]) - 1;
+    while(i >= 0){
+        usart_buffer[i+1] = usart_buffer[i];
+        i--;
+    }
+
+    usart_buffer[0] = carac;
+
+    //If it a time, save it
+    if(usart_buffer[2] == ':') { // Changement d'heure avant d'avoir l'info. Mettre un flage et faire le changement après
+        USART_Transmit('a');
+        hour = ctoi(usart_buffer[0], usart_buffer[1]);
+        minute = ctoi(usart_buffer[3], usart_buffer[4]);
+
+    }
+
+    // USART_Transmit(carac);
 }
 
 void main()

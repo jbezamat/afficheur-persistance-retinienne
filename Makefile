@@ -1,24 +1,12 @@
-CXXFLAGS=-Wall -Wextra
+program: main.o USART.o
+	avr-gcc -o program main.o USART.o
 
-
-OBJ= projet_se.o
-BIN= \
-	main\
-	SPI\
-
-.PHONY: all 
-all: $(BIN)
-
-$(BIN): projet_se.o
-
-main:
-	#avr-gcc -g -Os -mmcu=atmega128 USART.c -o usart.elf
+main.o: main.c USART.h
 	avr-gcc -g -Os -mmcu=atmega128 main.c -o main.elf
-	
+
 	avr-objcopy -O binary main.elf main.bin
 	avrdude -p m128 -U main.bin -b 115200 -c jtagmkI -P /dev/ttyUSB0 -v
 
-.PHONY: clean
-clean:
-	rm *.elf *.bin
+USART.o USART.c USART.h
+	avr-gcc -c USART.c
 

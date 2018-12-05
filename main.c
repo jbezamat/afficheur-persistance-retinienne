@@ -176,18 +176,10 @@ ISR(USART0_RX_vect)
 //Initialize Hall effect timer
 void Init_Hall_Timer() 
 {
-    //Set prescaler to 1024
-    TCCR3B |= _BV(CS32) | _BV(CS30);
+    //Set prescaler to 1
+    TCCR3B |= _BV(CS30);
 
-    //Set CTC mode
-    TCCR3B |= _BV(WGM32);
-
-    //Set overflow to 12695
-    OCR3AH = 0x31;
-    OCR3AL = 0x97;
-
-    //Set interrupt on compare match
-    TIMSK |= _BV(OCIE3A);
+    //Value : TCNT3
 }
 
 void main()

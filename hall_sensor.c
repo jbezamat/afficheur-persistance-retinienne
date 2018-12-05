@@ -11,21 +11,21 @@
 #define BAUD 38400
 #define MYUBRR FOSC/8/BAUD-1
 
-void USART_Transmit(unsigned char data)
+int hour = 0;
+int minute = 0;
+
+ISR(TIMER1_COMPA_vect) 
 {
-    while (!(UCSR0A & (1 << UDRE0)));
-    UDR0 = data;
-    while ((UCSR0A & (1 << TXC0)) == 0x00);
-}
+    minute++;
 
-void USART_puts(unsigned char *mot){
+    if(minute >= 60) {
+        minute = 0;
+        hour++;
+    }
 
-    //sprintf(buffer, "x=%u\r\n", TCNT1);
-    int k = 0;
-    while(mot[k] != '\0'){
-        USART_Transmit(mot[k]);
-        k++;
-    } 
+    if(hour >= 24) {
+        hour = 0;
+    }
 }
 
 void USART_Init(unsigned int ubbr)
@@ -44,41 +44,16 @@ void Init_Interrupt()
     sei();
 }
 
-
-ISR(USART0_RX_vect)
-{
-    unsigned char carac = UDR0;
-    USART_Transmit(carac);
-}
-
 void SPI_MasterInit()
-{
+{    
     /* Set MOSI and SCK output, all others input */
-    DDRB |= (1 << DDB3) | (1 << DDB5) ;
+    DDRB |= (1 << DDB2) | (1 << DDB1) ;
     /* Enable SPI, Master, TODO: set clock rate fck/4 */
     SPCR |= (1 << SPE) | (1 << MSTR);
-    /*Set PB3(OE), PB4 (LE)*/
-    DDRD |= (1 << DDD3) | (1 << DDD4);
+    /*Set PE4(OE), PE5 (LE)*/
+    DDRE |= (1 << DDE4) | (1 << DDE5);
 
-    PORTD = PORTD | _BV(PD3) | _BV(PD4);
-}
-void SPI_MasterTransmit(char cData, char cData2)
-{
-    /* Start transmission */
-    SPDR = cData;
-    /* Wait for transmission complete */
-    while (!(SPSR & (1 << SPIF)));
-    /* Start transmission */
-
-    SPDR = cData2;
-    /* Wait for transmission complete */
-    while (!(SPSR & (1 << SPIF)));
-
-    /* Latch and Output enable terminal*/
-    PORTD |= (1 << PORTD4); // latch
-    PORTD &= ~(1 << PORTD4);
-    PORTD &= ~(1 << PORTD3); // OE
-    PORTD |= (1 << PORTD3);
+    // PORTE = PORTE | _BV(PE4) | _BV(PE5);
 }
 
 void Init_Seconds() 
@@ -97,30 +72,98 @@ void Init_Seconds()
     TIMSK |= _BV(OCIE1A);
 }
 
-ISR(TIMER1_COMPA_vect) 
+void USART_Transmit(unsigned char data)
 {
-    USART_Transmit('s');
+    while (!(UCSR0A & (1 << UDRE0)));
+    UDR0 = data;
+    while ((UCSR0A & (1 << TXC0)) == 0x00);
+}
+
+void USART_puts(unsigned char *mot){
+
+    //sprintf(buffer, "x=%u\r\n", TCNT1);
+    int k = 0;
+    while(mot[k] != '\0'){
+        USART_Transmit(mot[k]);
+        k++;
+    } 
+}
+
+void SPI_MasterTransmit(char cData, char cData2)
+{
+    /* Start transmission */
+    SPDR = cData;
+    /* Wait for transmission complete */
+    while (!(SPSR & (1 << SPIF)));
+    /* Start transmission */
+
+    SPDR = cData2;
+    /* Wait for transmission complete */
+    while (!(SPSR & (1 << SPIF)));
+
+    /* Latch and Output enable terminal*/
+    PORTE |= (1 << PORTE5); // latch
+    PORTE &= ~(1 << PORTE5);
+    PORTE &= ~(1 << PORTE4); // OE
+    PORTE |= (1 << PORTE4);
+}
+
+
+char ctoi(char a, char b)
+{
+    char d = a - '0';
+    char u = b - '0';
+    return d*10 + u;
+}
+
+unsigned char usart_buffer[5];
+ISR(USART0_RX_vect)
+{
+    unsigned char carac = UDR0;
+
+    if(carac == 'h') {
+        char buffer[64];
+        sprintf(buffer, "%u:%u", hour, minute);
+        USART_puts(buffer);
+    }
+
+    //Fill USART buffer 
+
+    int i = sizeof(usart_buffer)/sizeof(usart_buffer[0]) - 1;
+    while(i >= 0){
+        usart_buffer[i+1] = usart_buffer[i];
+        i--;
+    }
+
+    usart_buffer[0] = carac;
+
+    //If it a time, save it
+    if(usart_buffer[2] == ':') { // Changement d'heure avant d'avoir l'info. Mettre un flage et faire le changement après
+        USART_Transmit('a');
+        hour = ctoi(usart_buffer[0], usart_buffer[1]);
+        minute = ctoi(usart_buffer[3], usart_buffer[4]);
+
+    }
+
+    // USART_Transmit(carac);
 }
 
 void main()
 {
-   // Active et allume la broche PB5 (led)
+    // Active et allume la broche PB5 (led)
     Init_Interrupt();
     USART_Init (MYUBRR);
     SPI_MasterInit();
     Init_Seconds();
-    
-    ADMUX |= (1 << MUX4); // VREF = AREF and select ADC0 gain x1
-
-    ADCSRA |= (1 << ADEN) | (1 << ADFR); // enable ADC, start free runing mode and division factor = 2
-
-    ADCSRA |= (1 << ADSC); // start conversion
-    uint16_t t = (ADCH << 8) | ADCL;
+    char cData = 0xFF;
+    char cData2 = 0xFF;
     char buffer[64];
+
+    DDRD &= ~(1 << DDD0);
     while (1)
-    {   
-        t = (ADCH << 8) | ADCL;
-        sprintf(buffer, "x=%u\r\n", ADCL);
+    {
+        uint16_t input_d0 = PIND & 0x01; // 1 hall off - 0 hall on
+        sprintf(buffer, "x=%u\r\n", input_d0);
         USART_puts(buffer);
         _delay_ms(1000);
     }

@@ -109,11 +109,31 @@ void SPI_MasterTransmit(char cData, char cData2)
 }
 
 
-char ctoi(char a, char b)
+int atoi(char* s, int l)
 {
-    char d = a - '0';
-    char u = b - '0';
-    return d*10 + u;
+    int val = 0;
+
+    int i = 1;
+    while(i <= l) {
+        if(s[l-i] < '0' || s[l-i] > '9')
+            return val;
+
+        int u = s[l-i] - '0';
+        
+        int j = 1;
+        int pow = 1;
+        while(j <= i-1)
+        {
+            pow *= 10;
+            j++;
+        }
+        
+        val += u * pow;
+        
+        i++;
+    }
+
+    return val;
 }
 
 unsigned char usart_buffer[5];
@@ -140,9 +160,11 @@ ISR(USART0_RX_vect)
     //If it a time, save it
     if(usart_buffer[2] == ':') { // Changement d'heure avant d'avoir l'info. Mettre un flage et faire le changement après
         USART_Transmit('a');
-        hour = ctoi(usart_buffer[0], usart_buffer[1]);
-        minute = ctoi(usart_buffer[3], usart_buffer[4]);
+        char h[2] = {usart_buffer[0], usart_buffer[1]};
+        char m[2] = {usart_buffer[3], usart_buffer[4]};
 
+        hour = atoi(h, 2);
+        minute = atoi(m, 2);
     }
 
     // USART_Transmit(carac);

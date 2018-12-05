@@ -45,15 +45,15 @@ void Init_Interrupt()
 }
 
 void SPI_MasterInit()
-{
+{    
     /* Set MOSI and SCK output, all others input */
-    DDRB |= (1 << DDB3) | (1 << DDB5) ;
+    DDRB |= (1 << DDB2) | (1 << DDB1) ;
     /* Enable SPI, Master, TODO: set clock rate fck/4 */
     SPCR |= (1 << SPE) | (1 << MSTR);
-    /*Set PB3(OE), PB4 (LE)*/
-    DDRD |= (1 << DDD3) | (1 << DDD4);
+    /*Set PE4(OE), PE5 (LE)*/
+    DDRE |= (1 << DDE4) | (1 << DDE5);
 
-    PORTD = PORTD | _BV(PD3) | _BV(PD4);
+    // PORTE = PORTE | _BV(PE4) | _BV(PE5);
 }
 
 void Init_Seconds() 
@@ -102,10 +102,10 @@ void SPI_MasterTransmit(char cData, char cData2)
     while (!(SPSR & (1 << SPIF)));
 
     /* Latch and Output enable terminal*/
-    PORTD |= (1 << PORTD4); // latch
-    PORTD &= ~(1 << PORTD4);
-    PORTD &= ~(1 << PORTD3); // OE
-    PORTD |= (1 << PORTD3);
+    PORTE |= (1 << PORTE5); // latch
+    PORTE &= ~(1 << PORTE5);
+    PORTE &= ~(1 << PORTE4); // OE
+    PORTE |= (1 << PORTE4);
 }
 
 
@@ -160,6 +160,7 @@ void main()
     char buffer[64];
     while (1)
     {
-        
+        SPI_MasterTransmit(cData, cData2);
+        _delay_ms(1000);
     }
 }

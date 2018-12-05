@@ -1,9 +1,15 @@
 CXXFLAGS=-Wall -Wextra
 
+
+OBJ= projet_se.o
+BIN= \
+	main\
+	SPI\
+
 .PHONY: all 
-all: main
+all: $(BIN)
 
-
+$(BIN): projet_se.o
 
 main:
 	#avr-gcc -g -Os -mmcu=atmega128 USART.c -o usart.elf

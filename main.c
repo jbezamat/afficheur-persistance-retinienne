@@ -14,7 +14,7 @@
 int hour = 0;
 int minute = 0;
 
-ISR(TIMER1_COMPA_vect) 
+ISR(TIMER1_COMPA_vect)
 {
     minute++;
 
@@ -56,10 +56,10 @@ void SPI_MasterInit()
     // PORTE = PORTE | _BV(PE4) | _BV(PE5);
 }
 
-void Init_Seconds() 
+void Init_Watch() 
 {
     //Set prescaler to 1024
-    TCCR1B |= _BV(CS12) | _BV(CS10);
+    TCCR1B |= _BV(CS10);
 
     //Set CTC mode
     TCCR1B |= _BV(WGM12);
@@ -167,7 +167,27 @@ ISR(USART0_RX_vect)
         minute = atoi(m, 2);
     }
 
-    // USART_Transmit(carac);
+    // if(carac == 'h') {
+    //     displayTime();
+    // }
+    //changeTime(carac);
+}
+
+//Initialize Hall effect timer
+void Init_Hall_Timer() 
+{
+    //Set prescaler to 1024
+    TCCR3B |= _BV(CS32) | _BV(CS30);
+
+    //Set CTC mode
+    TCCR3B |= _BV(WGM32);
+
+    //Set overflow to 12695
+    OCR3AH = 0x31;
+    OCR3AL = 0x97;
+
+    //Set interrupt on compare match
+    TIMSK |= _BV(OCIE3A);
 }
 
 void main()
@@ -176,7 +196,7 @@ void main()
     Init_Interrupt();
     USART_Init (MYUBRR);
     SPI_MasterInit();
-    Init_Seconds();
+    Init_Watch();
     char cData = 0xFF;
     char cData2 = 0xFF;
     char buffer[64];

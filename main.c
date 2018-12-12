@@ -194,7 +194,8 @@ void Init_Hall_Timer()
     //Set prescaler to 1
     TCCR3B |= _BV(CS30);
 
-    //Value : TCNT3
+    //Valeur du timer : TCNT3
+    //Voir comment clear le timer
 }
 
 void main()

@@ -14,6 +14,10 @@
 int hour = 0;
 int minute = 0;
 
+float speed = 0;
+int mode = 0;
+int timer_value = 0;
+
 ISR(TIMER1_COMPA_vect)
 {
     minute++;
@@ -94,8 +98,8 @@ void SPI_MasterTransmit(char cData, char cData2)
 {
     /* Start transmission */
     
-    PORTE &= ~(1 << PORTE4); // OE  
-    
+    PORTE &= ~(1 << PORTE4); // OE
+
     PORTB &= ~(1<<PB0);
     SPDR = cData;
 
@@ -169,8 +173,12 @@ ISR(USART0_RX_vect)
 
     usart_buffer[0] = carac;
 
+    if(usart_buffer[0] =='m'){
+        char temp = usart_buffer[1];
+        mode = atoi(usart_buffer, 1);
+    }
     //If it a time, save it
-    if(usart_buffer[2] == ':') { // Changement d'heure avant d'avoir l'info. Mettre un flage et faire le changement après
+    else if(usart_buffer[2] == ':') { // Changement d'heure avant d'avoir l'info. Mettre un flage et faire le changement après
         USART_Transmit('a');
         char h[2] = {usart_buffer[0], usart_buffer[1]};
         char m[2] = {usart_buffer[3], usart_buffer[4]};
@@ -178,11 +186,6 @@ ISR(USART0_RX_vect)
         hour = atoi(h, 2);
         minute = atoi(m, 2);
     }
-
-    // if(carac == 'h') {
-    //     displayTime();
-    // }
-    //changeTime(carac);
 }
 
 //Initialize Hall effect timer
@@ -206,9 +209,42 @@ void main()
     char buffer[64];
     while (1)
     {
-        SPI_MasterTransmit(0xFF, 0xFF);
+        uint16_t input_d0 = PIND & 0x01; // 1 hall off - 0 hall on
+        if(input_d0 == 0){
+            //SPI_MasterTransmit(0xFF, 0xFF);
+            //USART_Transmit('a');
+        }
+        else{
+            //SPI_MasterTransmit(0x00, 0x00);
+            //USART_Transmit('b');
+        }
         _delay_ms(1000);
-        SPI_MasterTransmit(0xAA, 0xAA);
-        _delay_ms(1000);
+        //SPI_MasterTransmit(0xAA, 0xAA);
+        //_delay_ms(1000);
     }
 }
+
+/*Global values
+float speed = 0;
+int mode = 0;
+int timer_value = 0;
+
+main
+Init_Interrupt();
+USART_Init(MYUBRR);
+SPI_MasterInit();
+Init_Watch();
+char buffer[64];
+
+
+while(1){
+    if(mode == 0)
+        affichage_tick_1();
+    else if(mode == 1)
+        affichage_tick_2();
+    else if(mode == 3)
+        affichage_tick_3();
+    else
+        SPI_MasterTransmit(0x00,0x00);
+
+}*/

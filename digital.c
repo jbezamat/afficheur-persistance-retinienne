@@ -245,6 +245,7 @@ void displayCurveTime() {
         lastMinute = minute;
     }
 
+    int thisTurnTime = turnTime;
     int i = 0;
     while(i < hash) {
         bool data[16] = ledStates[i];
@@ -254,7 +255,7 @@ void displayCurveTime() {
 
         SPI_MasterTransmit(char1, char2);
         
-        while(TCNT3 < (turnTime/hash)*(i+1));
+        while(TCNT3 < (thisTurnTime/hash)*(i+1));
 
         i++;
     }

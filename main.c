@@ -14,7 +14,7 @@ int hour = 0;
 int minute = 0;
 
 //float speed = 0;
-int mode = 0;
+int mode = 1;
 int timer_value = 0;
 
 ISR(TIMER1_COMPA_vect)
@@ -580,6 +580,24 @@ bool colon2[14][2] = {
 };
 //int hash = 60;
 
+bool hourHand[4][3] = {
+    {0, 1, 0},
+    {1, 1, 1},
+    {0, 1, 0},
+    {0, 1, 0},
+};
+
+bool minuteHand[8][3] = {
+    {0, 1, 0},
+    {1, 1, 1},
+    {0, 1, 0},
+    {0, 1, 0},
+    {0, 1, 0},
+    {0, 1, 0},
+    {0, 1, 0},
+    {0, 1, 0},
+};
+
 bool ledStates[60][16];
 
 void reinitArrayBool2() {
@@ -596,6 +614,36 @@ void reinitArrayBool2() {
     }
 }
 
+
+void hourHandToLedStates() {
+    volatile int i = 0;
+    volatile int li = 3;
+    volatile int j = 0;
+    volatile int lj = 4;
+    while(i < li) {
+        j = lj-1;
+        while(j >= 0) {
+            ledStates[(hour%12)*60/12][j] = hourHand[j][i];
+            j--;
+        }
+        i++;
+    }
+}
+
+void minuteHandToLedStates() {
+    volatile int i = 0;
+    volatile int li = 3;
+    volatile int j = 0;
+    volatile int lj = 8;
+    while(i < li) {
+        j = lj-1;
+        while(j >= 0) {
+            ledStates[minute][j] = hourHand[j][i];
+            j--;
+        }
+        i++;
+    }
+}
 
 int digitToLedStates(int digit, int a, int li, int lj) {
     volatile int i = 0;
@@ -655,7 +703,11 @@ void hourToCurveLed() {
     int m1 = minute/10;
     int m2 = minute - m1*10;
     int i = 0;
-    if(mode == 2){
+    if(mode == 1) {
+        hourHandToLedStates();
+        minuteHandToLedStates();
+    }
+    else if(mode == 2){
         i = 21;
         i = digitToLedStates(h1, i, 3, 5);
         i = digitToLedStates(h2, i, 3, 5);
@@ -672,6 +724,16 @@ void hourToCurveLed() {
         i = digitToLedStates(m2, i, 7, 14);
     }
     
+}
+
+void analogClockToArray() {
+    //Prepare data
+    reinitArrayBool2();
+
+    int h1 = hour/10;
+    int h2 = hour - h1*10;
+    int m1 = minute/10;
+    int m2 = minute - m1*10;
 }
 
 volatile int lastHour = 0;
@@ -736,7 +798,8 @@ void main()
         // USART_puts(" a");
         watch_tick();
         if(mode == 1){
-            LED_send(leds(Calc_deg(TCNT3)));  
+            //LED_send(leds(Calc_deg(TCNT3)));  
+            displayCurveTime();
         }
         else if(mode == 2){
             displayCurveTime();

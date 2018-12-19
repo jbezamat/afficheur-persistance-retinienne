@@ -193,12 +193,36 @@ void changeTime(unsigned char carac)
     }
 }
 
+void change_mode(carac){
+    int i = 1;
+    int l = sizeof(usart_buffer)/sizeof(usart_buffer[0]);
+    while(i < l){
+        usart_buffer[i-1] = usart_buffer[i];
+        i++;
+    }
+
+    usart_buffer[l-1] = carac;
+
+    if(usart_buffer[1] == '1'){
+        mode = 1;
+    }
+    else if(usart_buffer[1] == '2'){
+        mode = 2;
+    }
+    else if(usart_buffer[1] == '3'){
+        mode = 3;
+    }
+}
+
 ISR(USART0_RX_vect)
 {
     unsigned char carac = UDR0;
 
     if(carac == 'h') {
         displayTime();
+    }
+    else if(carac == 'm'){
+        change_mode(carac);
     }
     else{
         changeTime(carac);
@@ -245,7 +269,7 @@ ISR(INT0_vect)
     //     SPI_MasterTransmit(0xFF,0x00);
     // }
 
-    if((temp >=2000) && (temp <= 7000)){
+    if((temp >=4000) && (temp <= 5000)){
         //TCNT3 = 0;
         turnTime = temp;
         // char buffer[64];
@@ -253,25 +277,18 @@ ISR(INT0_vect)
         // //sprintf(buffer, "\n speed:%f \n turnTime:%d time_now: %d", speed, turnTime, time_now);
         // USART_puts(buffer); 
     }
-    // if(temp >= 7000){
-    //     TCNT3 = 0;
-    //     turnTime = 4600;
-    // }
-    // char buffer[64];
-    // sprintf(buffer, "%d\n\r", temp);
-    // //sprintf(buffer, "\n speed:%f \n turnTime:%d time_now: %d", speed, turnTime, time_now);
-    // USART_puts(buffer); 
     tour = 0;
 }
 
 uint16_t leds(uint32_t deg)
 {
     uint16_t cData = 0x0000;
-    if((minute*(turnTime/60) >= deg-10)&&(minute*(turnTime/60) <= deg+10)){
-        cData = 0x00FF;
-    }
+   
     if(((hour%12)*(turnTime/12)  >= deg-10) && ((hour%12)*(turnTime/12) <= deg+10)){
         cData = 0x000F;
+    }
+    if((minute*(turnTime/60) >= deg-10)&&(minute*(turnTime/60) <= deg+10)){
+        cData = 0x00FF;
     }
     
     
@@ -301,7 +318,88 @@ void LED_send(uint16_t leds){
 
 #include <stdbool.h>
 
-bool digits[10][14][7] = {
+bool digits[10][5][3] = {
+    {
+        {1, 1, 1},
+        {1, 0, 1},
+        {1, 0, 1},
+        {1, 0, 1},
+        {1, 1, 1},
+    },
+    {
+        {0, 0, 1},
+        {0, 1, 1},
+        {1, 0, 1},
+        {0, 0, 1},
+        {0, 0, 1},
+    },
+    {
+        {1, 1, 1},
+        {0, 0, 1},
+        {1, 1, 1},
+        {1, 0, 0},
+        {1, 1, 1},
+    },
+    {
+        {1, 1, 1},
+        {0, 0, 1},
+        {1, 1, 1},
+        {0, 0, 1},
+        {1, 1, 1},
+    },
+    {
+        {1, 0, 1},
+        {1, 0, 1},
+        {1, 1, 1},
+        {0, 0, 1},
+        {0, 0, 1},
+    },
+    {
+        {1, 1, 1},
+        {1, 0, 0},
+        {1, 1, 1},
+        {0, 0, 1},
+        {1, 1, 1},
+    },
+    {
+        {1, 1, 1},
+        {1, 0, 0},
+        {1, 1, 1},
+        {1, 0, 1},
+        {1, 1, 1},
+    },
+    {
+        {1, 1, 1},
+        {0, 0, 1},
+        {0, 1, 0},
+        {0, 1, 0},
+        {0, 1, 0},
+    },
+    {
+        {1, 1, 1},
+        {1, 0, 1},
+        {1, 1, 1},
+        {1, 0, 1},
+        {1, 1, 1},
+    },
+    {
+        {1, 1, 1},
+        {1, 0, 1},
+        {1, 1, 1},
+        {0, 0, 1},
+        {1, 1, 1},
+    }
+};
+
+bool colon[5][2] = {
+    {0, 0},
+    {1, 1},
+    {0, 0},
+    {1, 1},
+    {0, 0},
+};
+
+bool digits2[10][14][7] = {
     {
         {1, 1, 1, 1, 1, 1, 1},
         {1, 0, 0, 0, 0, 0, 1},
@@ -464,7 +562,7 @@ bool digits[10][14][7] = {
     }
 };
 
-bool colon[14][2] = {
+bool colon2[14][2] = {
     {0, 0},
     {0, 0},
     {0, 0},
@@ -498,19 +596,25 @@ void reinitArrayBool2() {
     }
 }
 
-int digitToLedStates(int digit, int a) {
+
+int digitToLedStates(int digit, int a, int li, int lj) {
     volatile int i = 0;
     //volatile int li = sizeof(digits[digit][0])/sizeof(digits[digit][0][0]);
     //printf("li : %d", li);
-    volatile int li = 7;
-    volatile int j = 13;
+    //volatile int li = 3;
+    volatile int j = lj;
     //volatile int lj = sizeof(digits[digit])/sizeof(digits[digit][0][0]);
     //printf("lj : %d", lj);
     //volatile int lj = 14;
     while(i < li) {
-        j = 13;
+        j = lj-1;
         while(j >= 0) {
-            ledStates[a+i][13-j+2] = digits[digit][j][i];
+            if(mode == 2){
+                ledStates[a+i][lj-j+(16-lj)/2] = digits[digit][j][i];
+            }
+            else if(mode == 3){
+                ledStates[a+i][lj-j+(16-lj)/2] = digits2[digit][j][i];
+            }
             j--;
         }
         i++;
@@ -519,15 +623,19 @@ int digitToLedStates(int digit, int a) {
     return a+i+1;
 }
 
-int colonToLedStates(int a) {
+int colonToLedStates(int a, int li, int lj) {
     volatile int i = 0;
-    volatile int li = 2;
     volatile int j = 0;
-    volatile int lj = 14;
     while(i < li) {
         j = 0;
         while(j < lj) {
-            ledStates[a+i][j+2] = colon[j][i];
+            int k = j+(16-lj)/2+((16-lj)/2)%2;
+            if(mode == 2){
+                ledStates[a+i][k] = colon[j][i];
+            }
+            else if(mode == 3){
+                ledStates[a+i][k] = colon2[j][i];
+            }
             j++;
         }
         i++;
@@ -546,14 +654,24 @@ void hourToCurveLed() {
     int h2 = hour - h1*10;
     int m1 = minute/10;
     int m2 = minute - m1*10;
-
-    int i = 13;
-
-    i = digitToLedStates(h1, i);
-    i = digitToLedStates(h2, i);
-    i = colonToLedStates(i);
-    i = digitToLedStates(m1, i);
-    i = digitToLedStates(m2, i);
+    int i = 0;
+    if(mode == 2){
+        i = 21;
+        i = digitToLedStates(h1, i, 3, 5);
+        i = digitToLedStates(h2, i, 3, 5);
+        i = colonToLedStates(i, 2, 5);
+        i = digitToLedStates(m1, i, 3, 5);
+        i = digitToLedStates(m2, i, 3, 5);
+    }
+    else if(mode == 3){
+        i = 13;
+        i = digitToLedStates(h1, i, 7, 14);
+        i = digitToLedStates(h2, i, 7, 14);
+        i = colonToLedStates(i, 2, 14);
+        i = digitToLedStates(m1, i, 7, 14);
+        i = digitToLedStates(m2, i, 7, 14);
+    }
+    
 }
 
 volatile int lastHour = 0;
@@ -616,37 +734,16 @@ void main()
     while (1)
     {
         // USART_puts(" a");
-        //LED_send(leds(Calc_deg(TCNT3)));
         watch_tick();
-        displayCurveTime();
-        // USART_puts(" end\n");
-        // SPI_MasterTransmit(0xFF,0x00);
-        // _delay_ms(1000);
-        //SPI_MasterTransmit(0x00, 0xFF);
+        if(mode == 1){
+            LED_send(leds(Calc_deg(TCNT3)));  
+        }
+        else if(mode == 2){
+            displayCurveTime();
+        }
+        else if(mode == 3) {
+            displayCurveTime();
+        }
     }
 }
 
-/*Global values 
-float speed = 0;
-int mode = 0;
-int timer_value = 0;
-
-main
-Init_Interrupt();
-USART_Init(MYUBRR);
-SPI_MasterInit();
-Init_Watch();
-char buffer[64];
-
-
-while(1){
-    if(mode == 0)
-        affichage_tick_1();
-    else if(mode == 1)
-        affichage_tick_2();
-    else if(mode == 3)
-        affichage_tick_3();
-    else
-        SPI_MasterTransmit(0x00,0x00);
-
-}*/

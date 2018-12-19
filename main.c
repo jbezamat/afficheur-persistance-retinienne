@@ -590,19 +590,19 @@ bool colon2[14][2] = {
 
 bool hourHand[4][3] = {
     {0, 1, 0},
-    {1, 1, 1},
     {0, 1, 0},
+    {1, 1, 1},
     {0, 1, 0},
 };
 
 bool minuteHand[8][3] = {
     {0, 1, 0},
+    {0, 1, 0},
+    {0, 1, 0},
+    {0, 1, 0},
+    {0, 1, 0},
+    {0, 1, 0},
     {1, 1, 1},
-    {0, 1, 0},
-    {0, 1, 0},
-    {0, 1, 0},
-    {0, 1, 0},
-    {0, 1, 0},
     {0, 1, 0},
 };
 
@@ -624,14 +624,23 @@ void reinitArrayBool2() {
 
 
 void hourHandToLedStates() {
-    volatile int i = 0;
     volatile int li = 3;
+    volatile int i = -1*li/2;
+    volatile int lj = 4 - 1;
     volatile int j = 0;
-    volatile int lj = 4;
-    while(i < li) {
-        j = lj-1;
+    int k = 0;
+    while(i <= li/2) {
+        k = (hour%12)*60/12+i;
+        if(k < 0)
+            k = 60 + k;
+        else if(k >= 60)
+            k = k - 60;
+        
+        j = lj;
         while(j >= 0) {
-            ledStates[(hour%12)*60/12][j] = hourHand[j][i];
+            ledStates[k][j] = hourHand[j][i+li/2];
+        
+            //printf("%d \n\r", j);
             j--;
         }
         i++;
@@ -639,14 +648,23 @@ void hourHandToLedStates() {
 }
 
 void minuteHandToLedStates() {
-    volatile int i = 0;
     volatile int li = 3;
+    volatile int i = -1*li/2;
+    volatile int lj = 8 - 1;
     volatile int j = 0;
-    volatile int lj = 8;
-    while(i < li) {
-        j = lj-1;
+    int k = 0;
+    while(i <= li/2) {
+        k = minute+i;
+        if(k < 0)
+            k = 60 + k;
+        else if(k >= 60)
+            k = k - 60;
+        
+        j = lj;
         while(j >= 0) {
-            ledStates[minute][j] = hourHand[j][i];
+            ledStates[k][j] = minuteHand[j][i+li/2];
+        
+            //printf("%d \n\r", j);
             j--;
         }
         i++;
@@ -701,7 +719,6 @@ int colonToLedStates(int a, int li, int lj) {
 }
 
 
-
 void hourToCurveLed() {
     //Prepare data
     reinitArrayBool2();
@@ -733,16 +750,6 @@ void hourToCurveLed() {
         i = digitToLedStates(m2, i, 7, 14);
     }
     
-}
-
-void analogClockToArray() {
-    //Prepare data
-    reinitArrayBool2();
-
-    int h1 = hour/10;
-    int h2 = hour - h1*10;
-    int m1 = minute/10;
-    int m2 = minute - m1*10;
 }
 
 volatile int lastHour = 0;

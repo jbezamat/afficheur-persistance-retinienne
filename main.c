@@ -14,7 +14,7 @@ int hour = 0;
 int minute = 0;
 
 //float speed = 0;
-int mode = 1;
+int mode = 4;
 int timer_value = 0;
 
 ISR(TIMER1_COMPA_vect)
@@ -195,16 +195,14 @@ void changeTime(unsigned char carac)
         && usart_buffer[1] == 'e'
         && usart_buffer[2] == 'l'
         && usart_buffer[3] == 'p') {
-            USART_puts("\n\r\r############
-            \n\r ### HELP ###
-            \n\r############
-            \n\r\rh : returns the time
-            \n\rhh:mm : change time
-            \n\rm0 : analog clock
-            \n\rm1 : enchanted clock
-            \n\rm2 : small digital clock
-            \n\rm3 : big digital clock")
+            USART_puts("\n\r\r############\n\r ### HELP ###\n\r############\n\r\rh : returns the time\n\rhh:mm : change time\n\rm0 : analog clock\n\rm1 : enchanted clock\n\rm2 : small digital clock\n\rm3 : big digital clock");
         }
+    else if(usart_buffer[0] == 'h') {
+        displayTime();
+    }
+    else if(usart_buffer[0] == 'm'){
+        change_mode(usart_buffer[1]);
+    }
 }
 
 void change_mode(carac){
@@ -233,16 +231,7 @@ void change_mode(carac){
 ISR(USART0_RX_vect)
 {
     unsigned char carac = UDR0;
-
-    if(carac == 'h') {
-        displayTime();
-    }
-    else if(carac == 'm'){
-        change_mode(carac);
-    }
-    else {
         changeTime(carac);
-    }
 }
 
 //Initialize Hall effect timer
@@ -272,8 +261,8 @@ volatile uint16_t TabturnTime[5] = {0,0,0,0,0};
 volatile int i = 0;
 
 volatile int tour = 0;
-volatile uint16_t first_int = 0;
-volatile uint16_t second_int = 0;
+volatile uint16_t first_int = 200;
+volatile uint16_t second_int = 4600;
 
 
 ISR(INT0_vect)
@@ -335,7 +324,7 @@ int Calc_deg(time_now)
     //     TCNT3 = 0;
     // }
 
-    //deg = (deg + turnTime/2)%turnTime;
+    deg = (deg + turnTime/2)%turnTime;
     //char buffer[64];
     // sprintf(buffer, "%d\n\r", time_now);
     // //sprintf(buffer, "\n speed:%f \n turnTime:%d time_now: %d", speed, turnTime, time_now);
@@ -360,11 +349,11 @@ bool digits[10][5][3] = {
         {1, 1, 1},
     },
     {
-        {0, 0, 1},
-        {0, 1, 1},
-        {1, 0, 1},
-        {0, 0, 1},
-        {0, 0, 1},
+        {0, 1, 0},
+        {1, 1, 0},
+        {0, 1, 0},
+        {0, 1, 0},
+        {1, 1, 1},
     },
     {
         {1, 1, 1},
@@ -831,7 +820,7 @@ void main()
     Init_Hall_Interrupt();
     //USART_Transmit('a');
 
-    hourToCurveLed();
+    //hourToCurveLed();
 
     char buffer[64];
     while (1)

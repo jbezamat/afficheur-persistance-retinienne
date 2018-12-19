@@ -295,9 +295,16 @@ uint16_t leds(uint32_t deg)
     if(((hour%12)*(turnTime/12)  >= deg-30) && ((hour%12)*(turnTime/12) <= deg+30)){
         cData = 0x000F;
     }
+    // if((hour%12 == 0)&&((deg <=30)&&(deg >= turnTime-30))){
+    //     cData = 0x000F;
+    // }
     if((minute*(turnTime/60) >= deg-30)&&(minute*(turnTime/60) <= deg+30)){
         cData = 0x00FF;
     }
+    // if((minute*(turnTime/60) >= deg-30)&&(minute*(turnTime/60) <= deg+30)){
+    //     cData = 0x00FF;
+    // }
+ 
     
     
     return cData;

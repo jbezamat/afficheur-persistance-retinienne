@@ -194,7 +194,7 @@ void changeTime(unsigned char carac)
     else if(usart_buffer[0] == 'h' 
         && usart_buffer[1] == 'e'
         && usart_buffer[2] == 'l'
-        && usart_buffer[0] == 'p') {
+        && usart_buffer[3] == 'p') {
             USART_puts("h : returns the time\n\rii:ii : change time\n\rm0 : analog clock\n\rm1 : enchanted clock\n\rm2 : small digital clock\n\rm3 : big digital clock")
         }
 }

@@ -806,12 +806,8 @@ void main()
         // USART_puts(" a");
         watch_tick();
         if(mode == 1){
-<<<<<<< HEAD
             //LED_send(leds(Calc_deg(TCNT3)));  
             displayCurveTime();
-=======
-            clock(leds(Calc_deg(TCNT3)));  
->>>>>>> c5684cd87dee6079db6b8b010278e199bfdf19ee
         }
         else if(mode == 2){
             displayCurveTime();

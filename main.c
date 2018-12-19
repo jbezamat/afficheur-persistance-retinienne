@@ -256,6 +256,9 @@ volatile uint16_t TabturnTime[5] = {0,0,0,0,0};
 volatile int i = 0;
 
 volatile int tour = 0;
+volatile uint16_t first_int = 0;
+volatile uint16_t second_int = 0;
+
 
 ISR(INT0_vect)
 {
@@ -268,15 +271,20 @@ ISR(INT0_vect)
     // else{
     //     SPI_MasterTransmit(0xFF,0x00);
     // }
+    if(temp < 4000){
+        first_int = temp;
+        TCNT3 = first_int;
+    }
 
-    if((temp >=4000) && (temp <= 5000)){
+    else if((temp >=4000) && (temp <= 5000)){
         //TCNT3 = 0;
-        turnTime = temp;
+        second_int = temp;
         // char buffer[64];
         // sprintf(buffer, "%d\n\r", temp);
         // //sprintf(buffer, "\n speed:%f \n turnTime:%d time_now: %d", speed, turnTime, time_now);
         // USART_puts(buffer); 
     }
+    turnTime = first_int/2 + second_int;
     tour = 0;
 }
 
@@ -284,10 +292,10 @@ uint16_t leds(uint32_t deg)
 {
     uint16_t cData = 0x0000;
    
-    if(((hour%12)*(turnTime/12)  >= deg-10) && ((hour%12)*(turnTime/12) <= deg+10)){
+    if(((hour%12)*(turnTime/12)  >= deg-30) && ((hour%12)*(turnTime/12) <= deg+30)){
         cData = 0x000F;
     }
-    if((minute*(turnTime/60) >= deg-10)&&(minute*(turnTime/60) <= deg+10)){
+    if((minute*(turnTime/60) >= deg-30)&&(minute*(turnTime/60) <= deg+30)){
         cData = 0x00FF;
     }
     
@@ -302,7 +310,7 @@ int Calc_deg(time_now)
     //     TCNT3 = 0;
     // }
 
-    //deg = (deg + turnTime/2)%turnTime;
+    deg = (deg + turnTime/2)%turnTime;
     //char buffer[64];
     // sprintf(buffer, "%d\n\r", time_now);
     // //sprintf(buffer, "\n speed:%f \n turnTime:%d time_now: %d", speed, turnTime, time_now);
@@ -310,7 +318,7 @@ int Calc_deg(time_now)
     return deg;
 }
 
-void LED_send(uint16_t leds){
+void clock(uint16_t leds){
     char up = (leds >> 8);
     char down = leds;
     SPI_MasterTransmit(up, down);
@@ -656,7 +664,8 @@ void hourToCurveLed() {
     int m2 = minute - m1*10;
     int i = 0;
     if(mode == 2){
-        i = 21;
+        //i = 21;
+        i=0;
         i = digitToLedStates(h1, i, 3, 5);
         i = digitToLedStates(h2, i, 3, 5);
         i = colonToLedStates(i, 2, 5);
@@ -727,8 +736,7 @@ void main()
     Init_Hall_Timer();
     Init_Hall_Interrupt();
 
-
-    hourToCurveLed();
+    //hourToCurveLed();
 
     char buffer[64];
     while (1)
@@ -736,7 +744,7 @@ void main()
         // USART_puts(" a");
         watch_tick();
         if(mode == 1){
-            LED_send(leds(Calc_deg(TCNT3)));  
+            clock(leds(Calc_deg(TCNT3)));  
         }
         else if(mode == 2){
             displayCurveTime();

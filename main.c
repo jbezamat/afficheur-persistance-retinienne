@@ -202,8 +202,10 @@ void change_mode(carac){
     }
 
     usart_buffer[l-1] = carac;
-
-    if(usart_buffer[1] == '1'){
+    if(usart_buffer[1] == '0'){
+        mode = 0;
+    }
+    else if(usart_buffer[1] == '1'){
         mode = 1;
     }
     else if(usart_buffer[1] == '2'){
@@ -271,12 +273,12 @@ ISR(INT0_vect)
     // else{
     //     SPI_MasterTransmit(0xFF,0x00);
     // }
-    if(temp < 4000){
+    if(temp < 2000){
         first_int = temp;
         TCNT3 = first_int;
     }
 
-    else if((temp >=4000) && (temp <= 5000)){
+    else if((temp >=3000) && (temp <= 6000)){
         //TCNT3 = 0;
         second_int = temp;
         // char buffer[64];
@@ -295,7 +297,7 @@ uint16_t leds(uint32_t deg)
     if(((hour%12)*(turnTime/12)  >= deg-30) && ((hour%12)*(turnTime/12) <= deg+30)){
         cData = 0x000F;
     }
-    if((deg <=100)&&(deg >= turnTime-100)){
+    if((deg <=200)&&(deg >= turnTime-200)){
         if(hour%12 == 0){
             cData = 0x000F;
         }
@@ -647,7 +649,7 @@ void hourHandToLedStates() {
         
         j = lj;
         while(j >= 0) {
-            ledStates[k][j] = hourHand[j][i+li/2];
+            ledStates[k][j] |= hourHand[j][i+li/2];
         
             //printf("%d \n\r", j);
             j--;
@@ -671,7 +673,7 @@ void minuteHandToLedStates() {
         
         j = lj;
         while(j >= 0) {
-            ledStates[k][j] = minuteHand[j][i+li/2];
+            ledStates[k][j] |= minuteHand[j][i+li/2];
         
             //printf("%d \n\r", j);
             j--;
@@ -703,7 +705,7 @@ int digitToLedStates(int digit, int a, int li, int lj) {
         i++;
     }
 
-    return a+i+1;
+    return((a+i+1)%60);
 }
 
 int colonToLedStates(int a, int li, int lj) {
@@ -724,7 +726,7 @@ int colonToLedStates(int a, int li, int lj) {
         i++;
     }
 
-    return a+i+1;
+    return((a+i+1)%60);
 }
 
 
@@ -743,7 +745,7 @@ void hourToCurveLed() {
     }
     else if(mode == 2){
         //i = 0;
-        i = 21;
+        i = 51;
         i = digitToLedStates(h1, i, 3, 5);
         i = digitToLedStates(h2, i, 3, 5);
         i = colonToLedStates(i, 2, 5);
@@ -751,7 +753,7 @@ void hourToCurveLed() {
         i = digitToLedStates(m2, i, 3, 5);
     }
     else if(mode == 3){
-        i = 13;
+        i = 43;
         i = digitToLedStates(h1, i, 7, 14);
         i = digitToLedStates(h2, i, 7, 14);
         i = colonToLedStates(i, 2, 14);
@@ -782,9 +784,9 @@ void displayCurveTime() {
 
         volatile int j = 0;
         while(j < 16) {
-            if(j < 8 && ledStates[tour][j])
+            if(j < 8 && ledStates[(tour+30)%60][j])
                 char1 |= 1 << (j%8);
-            else if(j >= 8 && ledStates[tour][j])
+            else if(j >= 8 && ledStates[(tour+30)%60][j])
                 char2 |= 1 << (j%8);
             j++;
         }
@@ -815,16 +817,17 @@ void main()
     Init_Hall_Interrupt();
     //USART_Transmit('a');
 
-    //hourToCurveLed();
+    hourToCurveLed();
 
     char buffer[64];
     while (1)
     {
-        // USART_puts(" a");
         watch_tick();
-        if(mode == 1){
+        if(mode == 0){
             clock(leds(Calc_deg(TCNT3)));  
-            //displayCurveTime();
+        }
+        if(mode == 1){
+            displayCurveTime();
         }
         else if(mode == 2){
             displayCurveTime();

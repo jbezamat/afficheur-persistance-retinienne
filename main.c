@@ -295,15 +295,17 @@ uint16_t leds(uint32_t deg)
     if(((hour%12)*(turnTime/12)  >= deg-30) && ((hour%12)*(turnTime/12) <= deg+30)){
         cData = 0x000F;
     }
-    // if((hour%12 == 0)&&((deg <=30)&&(deg >= turnTime-30))){
-    //     cData = 0x000F;
-    // }
+    if((deg <=100)&&(deg >= turnTime-100)){
+        if(hour%12 == 0){
+            cData = 0x000F;
+        }
+        if(minute == 30){
+            cData = 0x00FF;
+        }
+    }
     if((minute*(turnTime/60) >= deg-30)&&(minute*(turnTime/60) <= deg+30)){
         cData = 0x00FF;
     }
-    // if((minute*(turnTime/60) >= deg-30)&&(minute*(turnTime/60) <= deg+30)){
-    //     cData = 0x00FF;
-    // }
  
     
     
@@ -317,7 +319,7 @@ int Calc_deg(time_now)
     //     TCNT3 = 0;
     // }
 
-    deg = (deg + turnTime/2)%turnTime;
+    //deg = (deg + turnTime/2)%turnTime;
     //char buffer[64];
     // sprintf(buffer, "%d\n\r", time_now);
     // //sprintf(buffer, "\n speed:%f \n turnTime:%d time_now: %d", speed, turnTime, time_now);
@@ -723,8 +725,8 @@ void hourToCurveLed() {
         minuteHandToLedStates();
     }
     else if(mode == 2){
-        i = 0;
-        //i = 21;
+        //i = 0;
+        i = 21;
         i = digitToLedStates(h1, i, 3, 5);
         i = digitToLedStates(h2, i, 3, 5);
         i = colonToLedStates(i, 2, 5);
@@ -804,6 +806,7 @@ void main()
     Init_Watch();
     Init_Hall_Timer();
     Init_Hall_Interrupt();
+    //USART_Transmit('a');
 
     //hourToCurveLed();
 
@@ -813,8 +816,8 @@ void main()
         // USART_puts(" a");
         watch_tick();
         if(mode == 1){
-            //LED_send(leds(Calc_deg(TCNT3)));  
-            displayCurveTime();
+            clock(leds(Calc_deg(TCNT3)));  
+            //displayCurveTime();
         }
         else if(mode == 2){
             displayCurveTime();

@@ -14,7 +14,7 @@ int hour = 0;
 int minute = 0;
 
 //float speed = 0;
-int mode = 4;
+int mode = 0;
 int timer_value = 0;
 
 ISR(TIMER1_COMPA_vect)
@@ -732,10 +732,14 @@ int colonToLedStates(int a, int li, int lj) {
     return((a+i+1)%60);
 }
 
+int lastH1 = -1;
+int lastH2 = -1;
+int lastM1 = -1;
+int lastM2 = -1;
 
 void hourToCurveLed() {
     //Prepare data
-    reinitArrayBool2();
+    //reinitArrayBool2();
 
     int h1 = hour/10;
     int h2 = hour - h1*10;
@@ -749,11 +753,28 @@ void hourToCurveLed() {
     else if(mode == 2){
         //i = 0;
         i = 51;
-        i = digitToLedStates(h1, i, 3, 5);
-        i = digitToLedStates(h2, i, 3, 5);
+
+        if(lastH1 != h1) {
+            digitToLedStates(h1, i, 3, 5);
+        }
+        i += 4;
+
+        if(lastH2 != h2) {
+            digitToLedStates(h2, i, 3, 5);
+        }
+        i += 4;
+
         i = colonToLedStates(i, 2, 5);
-        i = digitToLedStates(m1, i, 3, 5);
-        i = digitToLedStates(m2, i, 3, 5);
+
+        if(lastM1 != m1) {
+            digitToLedStates(m1, i, 3, 5);
+        }
+        i += 4;
+
+        if(lastM2 != m2) {
+            digitToLedStates(m2, i, 3, 5);
+        }
+        i += 4;
     }
     else if(mode == 3){
         i = 43;
@@ -763,8 +784,55 @@ void hourToCurveLed() {
         i = digitToLedStates(m1, i, 7, 14);
         i = digitToLedStates(m2, i, 7, 14);
     }
-    
+
+    lastH1 = h1;
+    lastH2 = h2;
+    lastM1 = m1;
+    lastM2 = m2;
 }
+
+// void changeLastTick(int tick) {
+//     int col[16];
+
+//     if(tick == 0)
+//         tick = 59;
+
+//     int h1 = hour/10;
+//     int h2 = hour - h1*10;
+//     int m1 = minute/10;
+//     int m2 = minute - m1*10;
+//     int i = 0;
+
+//     if(mode == 1) {
+//         hourHandToLedStates();
+//         minuteHandToLedStates();
+//     }
+//     else if(mode == 2){
+//         //i = 0;
+//         i = 51;
+//         i = digitToLedStates(h1, i, 3, 5);
+//         i = digitToLedStates(h2, i, 3, 5);
+//         i = colonToLedStates(i, 2, 5);
+//         i = digitToLedStates(m1, i, 3, 5);
+//         i = digitToLedStates(m2, i, 3, 5);
+//     }
+//     else if(mode == 3){
+//         i = 43;
+//         i = digitToLedStates(h1, i, 7, 14);
+//         i = digitToLedStates(h2, i, 7, 14);
+//         i = colonToLedStates(i, 2, 14);
+//         i = digitToLedStates(m1, i, 7, 14);
+//         i = digitToLedStates(m2, i, 7, 14);
+//     }
+
+
+//     //Change last tick column
+//     int k = 0;
+//     while(k < 16) {
+//         ledStates[tick-1][k] = col[k];
+//         k++;
+//     }
+// }
 
 volatile int lastHour = 0;
 volatile int lastMinute = 0;

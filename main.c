@@ -171,6 +171,22 @@ void displayTime()
 
 //Changes time when received through USART
 unsigned char usart_buffer[5];
+
+void change_mode(unsigned char carac){
+    if(carac == '0'){
+        mode = 0;
+    }
+    else if(carac== '1'){
+        mode = 1;
+    }
+    else if(carac == '2'){
+        mode = 2;
+    }
+    else if(carac == '3'){
+        mode = 3;
+    }
+}
+
 void changeTime(unsigned char carac)
 {
     //Fill USART buffer 
@@ -191,42 +207,20 @@ void changeTime(unsigned char carac)
         hour = atoi(h, 2);
         minute = atoi(m, 2);
     }
-    else if(usart_buffer[0] == 'h' 
-        && usart_buffer[1] == 'e'
-        && usart_buffer[2] == 'l'
-        && usart_buffer[3] == 'p') {
+    else if(usart_buffer[1] == 'h' 
+        && usart_buffer[2] == 'e'
+        && usart_buffer[3] == 'l'
+        && usart_buffer[4] == 'p') {
             USART_puts("\n\r\r############\n\r ### HELP ###\n\r############\n\r\rh : returns the time\n\rhh:mm : change time\n\rm0 : analog clock\n\rm1 : enchanted clock\n\rm2 : small digital clock\n\rm3 : big digital clock");
         }
-    else if(usart_buffer[0] == 'h') {
+    else if(usart_buffer[4] == 'h') {
         displayTime();
     }
-    else if(usart_buffer[0] == 'm'){
-        change_mode(usart_buffer[1]);
+    else if(usart_buffer[3] == 'm'){
+        change_mode(usart_buffer[4]);
     }
 }
 
-void change_mode(carac){
-    int i = 1;
-    int l = sizeof(usart_buffer)/sizeof(usart_buffer[0]);
-    while(i < l){
-        usart_buffer[i-1] = usart_buffer[i];
-        i++;
-    }
-
-    usart_buffer[l-1] = carac;
-    if(usart_buffer[1] == '0'){
-        mode = 0;
-    }
-    else if(usart_buffer[1] == '1'){
-        mode = 1;
-    }
-    else if(usart_buffer[1] == '2'){
-        mode = 2;
-    }
-    else if(usart_buffer[1] == '3'){
-        mode = 3;
-    }
-}
 
 ISR(USART0_RX_vect)
 {

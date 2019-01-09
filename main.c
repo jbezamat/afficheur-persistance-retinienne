@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+
+#include <stdbool.h>
 //#include <stdlib.h>
 
 #define FOSC F_CPU// Clock Speed
@@ -14,15 +16,19 @@ int hour = 0;
 int minute = 0;
 
 //float speed = 0;
-int mode = 0;
+volatile int mode = 0;
 int timer_value = 0;
+volatile int lastMode = 0;
+volatile bool changedMode = false;
 
-ISR(TIMER1_COMPA_vect)
-{
-    minute++;
+volatile uint16_t turnTime = 0;
+volatile uint16_t TabturnTime[5] = {0,0,0,0,0};
+volatile int i = 0;
 
+volatile int tour = 0;
+volatile uint16_t first_int = 200;
+volatile uint16_t second_int = 4600;
 
-}
 
 void USART_Init(unsigned int ubbr)
 {
@@ -33,27 +39,6 @@ void USART_Init(unsigned int ubbr)
     UCSR0B = (_BV(RXEN0)) | (_BV(TXEN0)) | (_BV(RXCIE0)); //enable RX and Tx and interrupt on reception
     UCSR0C = (3 << (UCSZ00));                             //8bit char
 }
-
-
-void Init_Interrupt()
-{
-    sei();
-}
-
-void SPI_MasterInit()
-{    
-    /* Set MOSI and SCK output, all others input */
-    DDRB |= (1 << DDB0) | (1 << DDB2) | (1 << DDB1) ;
-    /* Enable SPI, Master, TODO: set clock rate fck/4 */
-    SPCR |= (1 << SPE) | (1 << MSTR);
-    /*Set PE4(OE), PE5 (LE)*/
-    DDRE |= (1 << DDE4) | (1 << DDE5);
-
-    PORTB &= ~(1<<PB0);
-    PORTE &= ~(1 << PORTE4); // OE
-    // PORTE = PORTE | _BV(PE4) | _BV(PE5);
-}
-
 void USART_Transmit(unsigned char data)
 {
     while (!(UCSR0A & (1 << UDRE0)));
@@ -70,6 +55,38 @@ void USART_puts(unsigned char *mot){
         k++;
     } 
 }
+
+void Init_Interrupt()
+{
+    sei();
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+    minute++;
+
+    char buffer[64];
+    sprintf(buffer, "%d", mode);
+    USART_puts(buffer);
+}
+
+
+void SPI_MasterInit()
+{    
+    /* Set MOSI and SCK output, all others input */
+    DDRB |= (1 << DDB0) | (1 << DDB2) | (1 << DDB1) ;
+    /* Enable SPI, Master, TODO: set clock rate fck/4 */
+    SPCR |= (1 << SPE) | (1 << MSTR);
+    /*Set PE4(OE), PE5 (LE)*/
+    DDRE |= (1 << DDE4) | (1 << DDE5);
+
+    PORTB &= ~(1<<PB0);
+    PORTE &= ~(1 << PORTE4); // OE
+    // PORTE = PORTE | _BV(PE4) | _BV(PE5);
+}
+
+
+
 
 void SPI_MasterTransmit(char cData, char cData2)
 {
@@ -169,42 +186,23 @@ void displayTime()
     USART_puts(buffer);
 }
 
-//Changes time when received through USART
-unsigned char usart_buffer[5];
-void changeTime(unsigned char carac)
-{
-    //Fill USART buffer 
-    int i = 1;
-    int l = sizeof(usart_buffer)/sizeof(usart_buffer[0]);
-    while(i < l) {
-        usart_buffer[i-1] = usart_buffer[i];
-        i++;
-    }
+bool ledStates[60][16];
 
-    usart_buffer[l-1] = carac;
-
-    //If it's a time, save it
-    if(usart_buffer[2] == ':') {
-        char h[2] = {usart_buffer[0], usart_buffer[1]};
-        char m[2] = {usart_buffer[3], usart_buffer[4]};
-
-        hour = atoi(h, 2);
-        minute = atoi(m, 2);
-    }
-    else if(usart_buffer[0] == 'h' 
-        && usart_buffer[1] == 'e'
-        && usart_buffer[2] == 'l'
-        && usart_buffer[3] == 'p') {
-            USART_puts("\n\r\r############\n\r ### HELP ###\n\r############\n\r\rh : returns the time\n\rhh:mm : change time\n\rm0 : analog clock\n\rm1 : enchanted clock\n\rm2 : small digital clock\n\rm3 : big digital clock");
+void reinitArrayBool2() {
+    volatile int i = 0;
+    volatile int li = sizeof(ledStates[0])/sizeof(ledStates[0][0]);
+    while(i < li) {
+        volatile int j = 0;
+        volatile int lj = sizeof(ledStates)/sizeof(ledStates[0][0]);
+        while(j < lj) {
+            ledStates[i][j] = 0;
+            j++;
         }
-    else if(usart_buffer[0] == 'h') {
-        displayTime();
-    }
-    else if(usart_buffer[0] == 'm'){
-        change_mode(usart_buffer[1]);
+        i++;
     }
 }
 
+unsigned char usart_buffer[5];
 void change_mode(carac){
     int i = 1;
     int l = sizeof(usart_buffer)/sizeof(usart_buffer[0]);
@@ -226,89 +224,29 @@ void change_mode(carac){
     else if(usart_buffer[1] == '3'){
         mode = 3;
     }
+    //changedMode = true;
+    reinitArrayBool2();
 }
 
-ISR(USART0_RX_vect)
-{
-    unsigned char carac = UDR0;
-        changeTime(carac);
-}
+//Changes time when received through USART
 
-//Initialize Hall effect timer
-void Init_Hall_Timer() 
-{
-    //Set prescaler to 256
-    TCCR3B |= _BV(CS32);
-
-    //Set CTC mode
-    TCCR3B |= _BV(WGM32);
-}
-
-void Init_Hall_Interrupt()
-{
-    //Disable hall sensor interrupt to setup it
-    EIMSK &= ~_BV(INT0);
-
-    //Set interrupt at falling edge
-    EICRA |= ISC01;
-
-    //Enable hall sensor interrupt
-    EIMSK |= _BV(INT0);
-}
-
-volatile uint16_t turnTime = 0;
-volatile uint16_t TabturnTime[5] = {0,0,0,0,0};
-volatile int i = 0;
-
-volatile int tour = 0;
-volatile uint16_t first_int = 200;
-volatile uint16_t second_int = 4600;
-
-
-ISR(INT0_vect)
-{
-    uint16_t temp = TCNT3;
-    TCNT3 = 0;
-    // i++;
-    // if(i%2 == 0){
-    //     SPI_MasterTransmit(0x00,0xFF);
-    // }
-    // else{
-    //     SPI_MasterTransmit(0xFF,0x00);
-    // }
-    if(temp < 2000){
-        first_int = temp;
-        TCNT3 = first_int;
-    }
-
-    else if((temp >=3000) && (temp <= 6000)){
-        //TCNT3 = 0;
-        second_int = temp;
-        // char buffer[64];
-        // sprintf(buffer, "%d\n\r", temp);
-        // //sprintf(buffer, "\n speed:%f \n turnTime:%d time_now: %d", speed, turnTime, time_now);
-        // USART_puts(buffer); 
-    }
-    turnTime = first_int/2 + second_int;
-    tour = 0;
-}
 
 uint16_t leds(uint32_t deg)
 {
     uint16_t cData = 0x0000;
    
-    if(((hour%12)*(turnTime/12)  >= deg-30) && ((hour%12)*(turnTime/12) <= deg+30)){
+    if(((hour%12)*(turnTime*10/12)  >= deg-300) && ((hour%12)*(turnTime*10/12) <= deg+300)){
         cData = 0x000F;
     }
-    if((deg <=200)&&(deg >= turnTime-200)){
-        if(hour%12 == 0){
-            cData = 0x000F;
-        }
-        if(minute == 30){
-            cData = 0x00FF;
-        }
-    }
-    if((minute*(turnTime/60) >= deg-30)&&(minute*(turnTime/60) <= deg+30)){
+    // if((deg <=300)&&(deg >= turnTime-300)){
+    //     if(hour%12 == 0){
+    //         cData = 0x000F;
+    //     }
+    //     if(minute == 30){
+    //         cData = 0x00FF;
+    //     }
+    // }
+    if((minute*(turnTime*10/60) >= deg-300)&&(minute*(turnTime*10/60) <= deg+300)){
         cData = 0x00FF;
     }
  
@@ -337,8 +275,6 @@ void clock(uint16_t leds){
     char down = leds;
     SPI_MasterTransmit(up, down);
 }
-
-#include <stdbool.h>
 
 bool digits[10][5][3] = {
     {
@@ -620,20 +556,98 @@ bool minuteHand[8][3] = {
     {0, 1, 0},
 };
 
-bool ledStates[60][16];
 
-void reinitArrayBool2() {
-    volatile int i = 0;
-    volatile int li = sizeof(ledStates[0])/sizeof(ledStates[0][0]);
-    while(i < li) {
-        volatile int j = 0;
-        volatile int lj = sizeof(ledStates)/sizeof(ledStates[0][0]);
-        while(j < lj) {
-            ledStates[i][j] = 0;
-            j++;
-        }
+
+void changeTime(unsigned char carac)
+{
+    //Fill USART buffer 
+    int i = 1;
+    int l = sizeof(usart_buffer)/sizeof(usart_buffer[0]);
+    while(i < l) {
+        usart_buffer[i-1] = usart_buffer[i];
         i++;
     }
+
+    usart_buffer[l-1] = carac;
+
+    //If it's a time, save it
+    if(usart_buffer[2] == ':') {
+        char h[2] = {usart_buffer[0], usart_buffer[1]};
+        char m[2] = {usart_buffer[3], usart_buffer[4]};
+
+        hour = atoi(h, 2);
+        minute = atoi(m, 2);
+    }
+    else if(usart_buffer[0] == 'h' 
+        && usart_buffer[1] == 'e'
+        && usart_buffer[2] == 'l'
+        && usart_buffer[3] == 'p') {
+            USART_puts("\n\r\r############\n\r ### HELP ###\n\r############\n\r\rh : returns the time\n\rhh:mm : change time\n\rm0 : analog clock\n\rm1 : enchanted clock\n\rm2 : small digital clock\n\rm3 : big digital clock");
+        }
+    else if(usart_buffer[0] == 'h') {
+        displayTime();
+    }
+    else if(usart_buffer[0] == 'm'){
+        change_mode(usart_buffer[1]);
+    }
+}
+
+ISR(USART0_RX_vect)
+{
+    unsigned char carac = UDR0;
+        changeTime(carac);
+}
+
+//Initialize Hall effect timer
+void Init_Hall_Timer() 
+{
+    //Set prescaler to 256
+    TCCR3B |= _BV(CS32);
+
+    //Set CTC mode
+    TCCR3B |= _BV(WGM32);
+}
+
+void Init_Hall_Interrupt()
+{
+    //Disable hall sensor interrupt to setup it
+    EIMSK &= ~_BV(INT0);
+
+    //Set interrupt at falling edge
+    EICRA |= ISC01;
+
+    //Enable hall sensor interrupt
+    EIMSK |= _BV(INT0);
+}
+
+
+
+ISR(INT0_vect)
+{
+    uint16_t temp = TCNT3;
+    TCNT3 = 0;
+    // i++;
+    // if(i%2 == 0){
+    //     SPI_MasterTransmit(0x00,0xFF);
+    // }
+    // else{
+    //     SPI_MasterTransmit(0xFF,0x00);
+    // }
+    if(temp < 2000){
+        first_int = temp;
+        TCNT3 = first_int;
+    }
+
+    else if((temp >=3000) && (temp <= 6000)){
+        //TCNT3 = 0;
+        second_int = temp;
+        // char buffer[64];
+        // sprintf(buffer, "%d\n\r", temp);
+        // //sprintf(buffer, "\n speed:%f \n turnTime:%d time_now: %d", speed, turnTime, time_now);
+        // USART_puts(buffer); 
+    }
+    turnTime = first_int/2 + second_int;
+    tour = 0;
 }
 
 
@@ -747,42 +761,70 @@ void hourToCurveLed() {
     int m2 = minute - m1*10;
     int i = 0;
     if(mode == 1) {
+        reinitArrayBool2();
         hourHandToLedStates();
         minuteHandToLedStates();
     }
-    else if(mode == 2){
+    else if(mode == 2) {
         //i = 0;
         i = 51;
 
-        if(lastH1 != h1) {
+        if(lastH1 != h1 || changedMode) {
             digitToLedStates(h1, i, 3, 5);
         }
         i += 4;
 
-        if(lastH2 != h2) {
+        if(lastH2 != h2 || changedMode) {
             digitToLedStates(h2, i, 3, 5);
         }
         i += 4;
 
-        i = colonToLedStates(i, 2, 5);
+        if(changedMode)
+            colonToLedStates(i, 2, 5);
+        i += 3;
 
-        if(lastM1 != m1) {
+        if(lastM1 != m1 || changedMode) {
             digitToLedStates(m1, i, 3, 5);
         }
         i += 4;
 
-        if(lastM2 != m2) {
+        if(lastM2 != m2 || changedMode) {
             digitToLedStates(m2, i, 3, 5);
         }
         i += 4;
     }
-    else if(mode == 3){
+    else if(mode == 3) {
         i = 43;
-        i = digitToLedStates(h1, i, 7, 14);
-        i = digitToLedStates(h2, i, 7, 14);
-        i = colonToLedStates(i, 2, 14);
-        i = digitToLedStates(m1, i, 7, 14);
-        i = digitToLedStates(m2, i, 7, 14);
+
+        if(lastH1 != h1 || changedMode) {
+            digitToLedStates(h1, i, 7, 14);
+        }
+        i += 8;
+
+        if(lastH2 != h2 || changedMode) {
+            digitToLedStates(h2, i, 7, 14);
+        }
+        i += 8;
+
+        if(changedMode)
+            colonToLedStates(i, 2, 14);
+        i += 3;
+
+        if(lastM1 != m1 || changedMode) {
+            digitToLedStates(m1, i, 7, 14);
+        }
+        i += 8;
+
+        if(lastM2 != m2 || changedMode) {
+            digitToLedStates(m2, i, 7, 14);
+        }
+        i += 8;
+
+        // i = digitToLedStates(h1, i, 7, 14);
+        // i = digitToLedStates(h2, i, 7, 14);
+        // i = colonToLedStates(i, 2, 14);
+        // i = digitToLedStates(m1, i, 7, 14);
+        // i = digitToLedStates(m2, i, 7, 14);
     }
 
     lastH1 = h1;
@@ -876,7 +918,6 @@ void watch_tick(){
         hour = 0;
     }
 }
-
 void main()
 {
     // Active et allume la broche PB5 (led)
@@ -890,9 +931,9 @@ void main()
 
     //hourToCurveLed();
 
-    char buffer[64];
     while (1)
     {
+
         watch_tick();
         if(mode == 0){
             clock(leds(Calc_deg(TCNT3)));  
@@ -906,6 +947,9 @@ void main()
         else if(mode == 3) {
             displayCurveTime();
         }
+
+        lastMode = mode;
+        changedMode = false;
     }
 }
 

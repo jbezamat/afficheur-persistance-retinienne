@@ -1,51 +1,44 @@
-#define F_CPU 13000000
-
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <util/delay.h>
-
-#define FOSC F_CPU// Clock Speed
-#define BAUD 115200
-#define MYUBRR FOSC/16/BAUD-1
+#include "SPI.h"
 
 void SPI_MasterInit()
-{
+{    
     /* Set MOSI and SCK output, all others input */
-    DDRB = (1 << DDB3) | (1 << DDB5) ;
+    DDRB |= (1 << DDB0) | (1 << DDB2) | (1 << DDB1) ;
     /* Enable SPI, Master, TODO: set clock rate fck/4 */
-    SPCR = (1 << SPE) | (1 << MSTR);
-    /*Set PB3(OE), PB4 (LE)*/
-    DDRD = (1 << DDD3) | (1 << DDD4);
+    SPCR |= (1 << SPE) | (1 << MSTR);
+    /*Set PE4(OE), PE5 (LE)*/
+    DDRE |= (1 << DDE4) | (1 << DDE5);
+
+    PORTB &= ~(1<<PB0);
+    PORTE &= ~(1 << PORTE4); // OE
 }
+
 void SPI_MasterTransmit(char cData, char cData2)
 {
     /* Start transmission */
+
+    PORTE &= ~(1 << PORTE4); // OE
+
+    PORTB &= ~(1<<PB0);
     SPDR = cData;
+
     /* Wait for transmission complete */
     while (!(SPSR & (1 << SPIF)));
-
     /* Start transmission */
+    PORTB |= (1<<PB0);
+    _delay_us(20);
+    PORTB &= ~(1<<PB0);
     SPDR = cData2;
     /* Wait for transmission complete */
     while (!(SPSR & (1 << SPIF)));
 
+    PORTB |= (1<<PB0);
+
     /* Latch and Output enable terminal*/
-    PORTD |= (1 << PORTD4); // latch
-    PORTD |= (0 << PORTD4);
-    PORTD |= (1 << PORTD3); // OE
-    _delay_ms(2000);
-    PORTD |= (0 << PORTD3);
-}
+    PORTE |= (1 << PORTE5); // latch
+    PORTE &= ~(1 << PORTE5);
 
+    PORTE |= (1 << PORTE4);
+    PORTE &= ~(1 << PORTE4); // OE
 
-void main()
-{
-    SPI_MasterInit();
-    char cData = 0x01;
-    char cData2 = 0x00;
-    while (1)
-    {
-        SPI_MasterTransmit(cData, cData2);
-        _delay_ms(1000);
-    }
 }

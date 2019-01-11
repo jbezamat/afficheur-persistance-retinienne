@@ -15,6 +15,5 @@ int colonToLedStates(int a, int li, int lj, bool display);
 void hourToCurveLed(int hour, int minute);
 void displayCurveTime(int hour, int minute);
 
-bool ledStates[60][16];
 
 #endif

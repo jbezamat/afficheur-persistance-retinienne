@@ -20,13 +20,13 @@ volatile int hour = 0;
 volatile int minute = 0;
 volatile int seconds = 0;
 
+volatile uint16_t ts = 0;
 //float speed = 0;
-volatile int mode = 0;
+volatile int mode = 1;
 int timer_value = 0;
 volatile bool changedMode = false;
 
 volatile uint16_t turnTime = 0;
-volatile uint16_t TabturnTime[5] = {0,0,0,0,0};
 
 volatile uint16_t first_int = 0;
 volatile uint16_t second_int = 0;
@@ -63,6 +63,7 @@ void Init_Watch()
     TIMSK |= _BV(OCIE1A);
 }
 
+
 // char displaySeconds(char up, int minute){
 //     int deg = Calc_deg(TCNT3);
 //     if(deg <= minute*10*(turnTime/600)){
@@ -74,24 +75,25 @@ void Init_Watch()
 uint16_t leds(uint32_t deg)
 {
     uint16_t cData = 0x0000;
+    deg = (deg+turnTime/2)%turnTime;
    
-    if(((hour%12)*10*(turnTime/120)  >= deg-100) && ((hour%12)*10*(turnTime/120) <= deg+100)){
+    if(((hour%12)*(turnTime/12)  >= deg-100) && ((hour%12)*(turnTime/12) <= deg+100)){
         cData = 0x000F;
     }
-    if((deg <=100)&&(deg >= turnTime-100)){
+    if((deg <=1000)&&(deg >= turnTime-1000)){
         if(hour%6 == 0){
             cData = 0x000F;
         }
-        if(minute == 30){
+        if(minute%30 == 0){
             cData = 0x00FF;
         }
     }
-    if((minute*10*(turnTime/600) >= deg-100)&&(minute*10*(turnTime/600) <= deg+100)){
+    if((((minute)*(turnTime/60))-1 >= deg-100)&&((minute)*(turnTime/60)-1 <= deg+100)){
         cData = 0x00FF;
     }
-    if(deg < minute*10*(turnTime/600)){
-        cData = cData | 0x8000;
-    }
+    // if(deg < minute*(turnTime/60)){
+    //     cData = cData | 0x8000;
+    // }
  
     return cData;
 }
@@ -129,7 +131,7 @@ ISR(INT0_vect)
         second_int = temp;
 
     }
-    turnTime = first_int/2 + second_int;
+    turnTime = first_int + second_int;
     tour = 0;
 }
 
@@ -144,6 +146,18 @@ ISR(TIMER1_COMPA_vect)
     minute++;
 }
 
+void timeStamp(){
+    ts = (TCNT1H << 8) | TCNT1L;
+}
+
+int debugTime(){
+    uint16_t temp = (TCNT1H << 8) | TCNT1L;
+    if(temp < ts){
+        return (temp + 21695-ts);
+    }
+    return (temp-ts);
+}
+
 void main()
 {
     Init_Interrupt();
@@ -152,10 +166,11 @@ void main()
     Init_Watch();
     Init_Hall_Timer();
     Init_Hall_Interrupt();
+    int k = 0;
+    uint32_t delta = 0;
 
     while (1)
     {
-
         watch_tick();
         if(mode == 0){
             clock(leds(Calc_deg(TCNT3)));  
@@ -169,9 +184,10 @@ void main()
         else if(mode == 3) {
             displayCurveTime(hour, minute);
         }
-        else if(mode == 4){
-            displayCurveTime(hour, minute);
-        }
+        
+        // else if(mode == 4){
+        //     displayCurveTime(hour, minute);
+        // }
     }
 }
 

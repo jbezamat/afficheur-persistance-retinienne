@@ -49,6 +49,9 @@ void change_mode(unsigned char carac)
     else if(carac == '3'){
         mode = 3;
     }
+    else if(carac == '4'){
+        mode = 4;
+    }
     changedMode = true;
 }
 

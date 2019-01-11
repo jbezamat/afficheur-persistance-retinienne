@@ -22,7 +22,7 @@ volatile int seconds = 0;
 
 volatile uint16_t ts = 0;
 //float speed = 0;
-volatile int mode = 1;
+volatile int mode = 0;
 int timer_value = 0;
 volatile bool changedMode = false;
 
@@ -75,7 +75,6 @@ void Init_Watch()
 uint16_t leds(uint32_t deg)
 {
     uint16_t cData = 0x0000;
-    deg = (deg+turnTime/2)%turnTime;
    
     if(((hour%12)*(turnTime/12)  >= deg-100) && ((hour%12)*(turnTime/12) <= deg+100)){
         cData = 0x000F;
@@ -91,9 +90,9 @@ uint16_t leds(uint32_t deg)
     if((((minute)*(turnTime/60))-1 >= deg-100)&&((minute)*(turnTime/60)-1 <= deg+100)){
         cData = 0x00FF;
     }
-    // if(deg < minute*(turnTime/60)){
-    //     cData = cData | 0x8000;
-    // }
+    if(deg < minute*(turnTime/60)){
+        cData = cData | 0x8000;
+    }
  
     return cData;
 }
@@ -185,9 +184,9 @@ void main()
             displayCurveTime(hour, minute);
         }
         
-        // else if(mode == 4){
-        //     displayCurveTime(hour, minute);
-        // }
+        else if(mode == 4){
+            displayCurveTime(hour, minute);
+        }
     }
 }
 

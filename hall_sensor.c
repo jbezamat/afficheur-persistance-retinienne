@@ -4,7 +4,7 @@
 void Init_Hall_Timer() 
 {
     //Set prescaler to 256
-    TCCR3B |= _BV(CS31) | _BV(CS30);;
+    TCCR3B |= _BV(CS31) | _BV(CS30);
 
     //Set CTC mode
     TCCR3B |= _BV(WGM32);

@@ -65,9 +65,9 @@ ISR(TIMER1_COMPA_vect)
 {
     minute++;
 
-    char buffer[64];
-    sprintf(buffer, "%d", mode);
-    USART_puts(buffer);
+    // char buffer[64];
+    // sprintf(buffer, "%d", mode);
+    // USART_puts(buffer);
 }
 
 
@@ -224,7 +224,7 @@ void change_mode(carac){
     else if(usart_buffer[1] == '3'){
         mode = 3;
     }
-    //changedMode = true;
+    changedMode = true;
     reinitArrayBool2();
 }
 
@@ -235,7 +235,7 @@ uint16_t leds(uint32_t deg)
 {
     uint16_t cData = 0x0000;
    
-    if(((hour%12)*(turnTime*10/12)  >= deg-300) && ((hour%12)*(turnTime*10/12) <= deg+300)){
+    if(((hour%12)*(turnTime/12)  >= deg-100) && ((hour%12)*(turnTime/12) <= deg+100)){
         cData = 0x000F;
     }
     // if((deg <=300)&&(deg >= turnTime-300)){
@@ -246,7 +246,7 @@ uint16_t leds(uint32_t deg)
     //         cData = 0x00FF;
     //     }
     // }
-    if((minute*(turnTime*10/60) >= deg-300)&&(minute*(turnTime*10/60) <= deg+300)){
+    if((minute*(turnTime/60) >= deg-100)&&(minute*(turnTime/60) <= deg+100)){
         cData = 0x00FF;
     }
  
@@ -578,17 +578,17 @@ void changeTime(unsigned char carac)
         hour = atoi(h, 2);
         minute = atoi(m, 2);
     }
-    else if(usart_buffer[0] == 'h' 
-        && usart_buffer[1] == 'e'
-        && usart_buffer[2] == 'l'
-        && usart_buffer[3] == 'p') {
-            USART_puts("\n\r\r############\n\r ### HELP ###\n\r############\n\r\rh : returns the time\n\rhh:mm : change time\n\rm0 : analog clock\n\rm1 : enchanted clock\n\rm2 : small digital clock\n\rm3 : big digital clock");
+    else if(usart_buffer[1] == 'h' 
+        && usart_buffer[2] == 'e'
+        && usart_buffer[3] == 'l'
+        && usart_buffer[4] == 'p') {
+            USART_puts("\n############\n ### HELP ###\n############\nh : returns the time\nhh:mm : change time\n0 : analog clock\nm1 : enchanted clock\nm2 : small digital clock\nm3 : big digital clock");
         }
-    else if(usart_buffer[0] == 'h') {
+    else if(usart_buffer[4] == 'h') {
         displayTime();
     }
-    else if(usart_buffer[0] == 'm'){
-        change_mode(usart_buffer[1]);
+    else if(usart_buffer[3] == 'm'){
+        change_mode(usart_buffer[4]);
     }
 }
 

@@ -1,6 +1,7 @@
 #include "curved.h"
 #include "global.h"
 #include "SPI.h"
+#include <avr/eeprom.h>
 
 uint8_t angle[33][33] = 
 {{22,23,23,23,24,24,25,25,26,26,27,27,28,28,29,29,30,31,31,32,32,33,33,34,34,35,35,36,36,37,37,37,38},
@@ -471,12 +472,12 @@ int digitToLedStatesRect(int digit, int a, int li, int lj, bool display){
     while(i >= 0){
         j = lj-1;
         while(j >= 0){
-            char an = angle[offsetx+j][offsety+i];
-            char ra = r[offsetx+j][offsety+i];
+            //uint8_t an = eeprom_read_byte((&angle[offsetx+j][offsety+i]));
+            //uint8_t ra = eeprom_read_byte((&r[offsetx+j][offsety+i]));
+            uint8_t an = angle[offsetx+j][offsety+i];
+            uint8_t ra = r[offsetx+j][offsety+i];
             if((an >= 60) || (ra >= 16)){
-                char buf[5];
-                sprintf(buf,"a");
-                USART_puts(buf);
+               
             }
             else{
                 ledStates[an][ra] = digits[digit][j][i];
@@ -662,6 +663,9 @@ void displayCurveTime(int hour, int minute) {
                 char2 |= 1 << (j%8);
             j++;
         }
+        //  char buf[5];
+        // sprintf(buf,"%d ", (tour+30)%60);
+        // USART_puts(buf);
     }
     if(((TCNT3 + turnTime/2)%turnTime) <= (turnTime/60)*(minute)){
         char2 = char2 | 0x80;

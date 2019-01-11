@@ -79,17 +79,19 @@ uint16_t leds(uint32_t deg)
     if(((hour%12)*(turnTime/12)  >= deg-100) && ((hour%12)*(turnTime/12) <= deg+100)){
         cData = 0x000F;
     }
-    if((deg <=1000)&&(deg >= turnTime-1000)){
-        if(hour%6 == 0){
+    if((deg <=100)||(deg >= turnTime-100)){
+        if(hour%12 == 0){
             cData = 0x000F;
         }
-        if(minute%30 == 0){
+        if(minute == 0){
             cData = 0x00FF;
         }
     }
+    
     if((((minute)*(turnTime/60))-1 >= deg-100)&&((minute)*(turnTime/60)-1 <= deg+100)){
         cData = 0x00FF;
     }
+
     if(deg < minute*(turnTime/60)){
         cData = cData | 0x8000;
     }
@@ -121,17 +123,17 @@ ISR(INT0_vect)
     uint16_t temp = TCNT3;
     TCNT3 = 0;
 
-    if(temp < 3000){
+    if(temp < 10000){
         first_int = temp;
         TCNT3 = first_int;
     }
 
-    else if((temp >=10000) && (temp <= 25000)){
+    else {
         second_int = temp;
+        tour = 0;
 
     }
-    turnTime = first_int + second_int;
-    tour = 0;
+    turnTime = second_int;
 }
 
 ISR(USART0_RX_vect)
